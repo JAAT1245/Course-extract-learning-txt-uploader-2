@@ -149,7 +149,7 @@ async def account_login(bot: Client, m: Message):
         # Assuming PDF is also to be processed
         pdf_name = "sample_pdf.pdf"  # Replace this with actual file name
         stylish_caption_pdf = (
-            f"📄 **File Name:** `{pdf_name}`\n"
+            f"📄 **File Name:** `{pdf_name}.pdf`\n"
             f"📂 **Batch Name:** `{raw_text0}`\n"
             f"✅ **PDF Processed Successfully!**\n"
             f"**Join @TARGETALLCOURSE for more updates!**"
