@@ -208,15 +208,16 @@ async def account_login(bot: Client, m: Message):
                 count += 1
                 time.sleep(1)
 
-        except Exception as e:
-            await m.reply_text(
-                f"**downloading Interupted **\n{str(e)}\n**Name** » {name}\n**Link** » `{url}`"
-            )
-            continue
+            except Exception as e:
+                await m.reply_text(
+                    f"**downloading Interupted **\n{str(e)}\n**Name** » {name}\n**Link** » `{url}`"
+                )
+                continue
 
-except Exception as e:
-    await m.reply_text(str(e))
-await m.reply_text("🔰Done CR 𝔹ᴏ𝕤𝕤🔰 ")
+    except Exception as e:
+        await m.reply_text(e)
+    await m.reply_text("🔰Done 𝔹ᴏ𝕤𝕤🔰 ")
 
 
 bot.run()
+
