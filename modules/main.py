@@ -7,6 +7,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.errors import FloodWait
 from pyromod import listen
+import time
 
 # Import variables
 from vars import api_id, api_hash, bot_token
@@ -85,58 +86,58 @@ async def account_login(bot: Client, m: Message):
     raw_text2 = resolution
     count = start_link
 
-    # वीडियो डाउनलोडिंग प्रोसेसिंग
+    # Start video download processing
     try:
         for i in range(count - 1, len(links)):
+
             V = links[i][1].replace("file/d/", "uc?export=download&id=").replace("www.youtube-nocookie.com/embed", "youtu.be").replace("?modestbranding=1", "").replace("/view?usp=sharing", "")
             url = "https://" + V
 
+            # VisionIAS URL handling
             if "visionias" in url:
                 async with ClientSession() as session:
-                    async with session.get(url, headers={
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                        'User-Agent': 'Mozilla/5.0'}) as resp:
+                    async with session.get(url, headers={'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'User-Agent': 'Mozilla/5.0'}) as resp:
                         text = await resp.text()
                         url = re.search(r"(https://.*?playlist.m3u8.*?)\"", text).group(1)
 
+            # ClassPlusApp URL handling
             elif 'videos.classplusapp' in url:
                 url = requests.get(f'https://api.classplusapp.com/cams/uploader/video/jw-signed-url?url={url}',
                                    headers={'x-access-token': 'your_token_here'}).json()['url']
 
+            # Master.mpd URL handling
             elif '/master.mpd' in url:
                 id = url.split("/")[-2]
                 url = "https://d26g5bnklkwsh4.cloudfront.net/" + id + "/master.m3u8"
 
-            name1 = links[i][0].strip()
+            name1 = links[i][0].replace("\t", "").replace(":", "").replace("/", "").replace("+", "").replace("#", "").replace("|", "").replace("@", "").replace("*", "").replace(".", "").replace("https", "").replace("http", "").strip()
             name = f'{str(count).zfill(3)}) {name1[:60]}'
 
-            ytf = f"b[height<={raw_text2}][ext=mp4]/bv[height<={raw_text2}][ext=mp4]+ba[ext=m4a]/b[ext=mp4]"
+            # YouTube specific format
+            if "youtu" in url:
+                ytf = f"b[height<={raw_text2}][ext=mp4]/bv[height<={raw_text2}][ext=mp4]+ba[ext=m4a]/b[ext=mp4]"
+            else:
+                ytf = f"b[height<={raw_text2}]/bv[height<={raw_text2}]+ba/b/bv+ba"
 
-            cmd = f'yt-dlp -f "{ytf}" "{url}" -o "{name}.mp4"'
+            # yt-dlp command
+            if "jw-prod" in url:
+                cmd = f'yt-dlp -o "{name}.mp4" "{url}"'
+            else:
+                cmd = f'yt-dlp -f "{ytf}" "{url}" -o "{name}.mp4"'
+
             try:
                 os.system(cmd)
 
-                # Stylish download progress message
-                stylish_message = stylish_progress_bar(perc=70, sp="2.5MB/s", cur="50MB", tot="100MB", eta="30s")
-                await m.reply_text(stylish_message)
+                # Send the video file with the caption
+                cc = f'**[📽️] Vid_ID:** {str(count).zfill(3)}.** {name1}{MR}.mkv\n**𝔹ᴀᴛᴄʜ** » **{raw_text0}**,>>JOIN @TARGETALLCOURSE'
+                cc1 = f'**[📁] Pdf_ID:** {str(count).zfill(3)}. {name1}{MR}.pdf \n**𝔹ᴀᴛᴄʜ** » **{raw_text0}**,>>JOIN @TARGETALLCOURSE'
 
-                stylish_caption_video = (
-                    f"🎥 **Video Name:** `{name1}.mkv`\n"
-                    f"📂 **Batch Name:** `{raw_text0}`\n"
-                    f"📽️ **Resolution:** `{raw_text2}`\n"
-                    f"✅ **Downloaded Successfully!**\n"
-                    f"**Join @TARGETALLCOURSE for more updates!**"
-                )
+                # Send the video file with the caption
+                await bot.send_document(chat_id=m.chat.id, document=f"{name}.mp4", caption=cc, thumb=thumb_path)
 
-                # Send to user with stylish caption
-                await bot.send_document(chat_id=m.chat.id, document=f"{name}.mp4", caption=stylish_caption_video, thumb=thumb_path)
-
-                # Stylish upload progress
-                stylish_upload_message = stylish_uploading_bar(perc=80, sp="3MB/s", cur="200MB", tot="250MB", eta="10s")
-                await m.reply_text(stylish_upload_message)
-
-                count += 1
+                # Clean up the downloaded video
                 os.remove(f"{name}.mp4")
+                count += 1
             except Exception as e:
                 await m.reply_text(f"❌ **Error Downloading {name}:** {e}")
                 continue
@@ -144,28 +145,9 @@ async def account_login(bot: Client, m: Message):
     except Exception as e:
         await m.reply_text(f"❌ **Error:** {e}")
 
-    # Add stylish caption for PDF
-    try:
-        # Assuming PDF is also to be processed
-        pdf_name = "sample_pdf.pdf"  # Replace this with actual file name
-        stylish_caption_pdf = (
-            f"📄 **File Name:** `{pdf_name}.pdf`\n"
-            f"📂 **Batch Name:** `{raw_text0}`\n"
-            f"✅ **PDF Processed Successfully!**\n"
-            f"**Join @TARGETALLCOURSE for more updates!**"
-        )
-
-        # Send PDF file to the user
-        await bot.send_document(chat_id=m.chat.id, document=pdf_name, caption=stylish_caption_pdf, thumb=thumb_path)
-
-        # Clean up the thumbnail
-        if thumb_path and os.path.exists(thumb_path):
-            os.remove(thumb_path)
-
-    except Exception as e:
-        await m.reply_text(f"❌ **Error processing PDF:** {e}")
-            
-       
+    # Clean up the thumbnail
+    if thumb_path and os.path.exists(thumb_path):
+        os.remove(thumb_path)
 
 # Running the bot
 bot.run()
