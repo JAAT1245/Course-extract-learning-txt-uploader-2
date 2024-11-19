@@ -1,25 +1,19 @@
 import os
 import re
 import sys
-import json
 import time
-import asyncio
 import requests
-import subprocess
-
-import core as helper
-from utils import progress_bar
-from vars import api_id, api_hash, bot_token
 from aiohttp import ClientSession
-from pyromod import listen
-from subprocess import getstatusoutput
-
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.errors import FloodWait
-from pyrogram.errors.exceptions.bad_request_400 import StickerEmojiInvalid
-from pyrogram.types.messages_and_media import message
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from pyromod import listen
+
+# Import variables
+from vars import api_id, api_hash, bot_token
+
+# Permanent channel where the uploaded files are sent
+PERMANENT_CHANNEL = "@hub_formate"
 
 bot = Client(
     "bot",
@@ -28,195 +22,179 @@ bot = Client(
     bot_token=bot_token
 )
 
-PERMANENT_CHANNEL = "@Hub_formate"  # Replace with your permanent channel username or ID
 
 @bot.on_message(filters.command(["start"]))
 async def account_login(bot: Client, m: Message):
-    editable = await m.reply_text(
-        f"✨ **Welcome, [{m.from_user.first_name}](tg://user?id={m.from_user.id})!** ✨\n\n"
-        "🔥 **I'm here to make your experience awesome!**\n"
-        "🚀 Press **/crchoudhary** to explore my features and get started!\n\n"
-        "💡 Need help? Just type /help anytime."
+    await m.reply_text(
+        f"👋 Hello [{m.from_user.first_name}](tg://user?id={m.from_user.id})!\n\n"
+        f"Welcome to the downloader bot.\nPress /crchoudhary to begin.",
     )
 
-@bot.on_message(filters.command(["help"]))
-async def help_command(bot: Client, m: Message):
-    await m.reply_text(
-        f"💡 **Hello, [{m.from_user.first_name}](tg://user?id={m.from_user.id})!**\n\n"
-        "🌟 Here's how I can assist you:\n\n"
-        "🔹 **/start** - To restart the bot and get a fresh welcome.\n"
-        "🔹 **/crchoudhary** - Explore my exclusive features.\n"
-        "🔹 **/help** - To see this help JOIN @TARGETALLCOURSE anytime.\n\n"
-        "✨ **More commands coming soon! Stay tuned.**\n\n"
-        "⚡ Need further assistance? Feel free to ask!"
-    )
 
 @bot.on_message(filters.command("stop"))
 async def restart_handler(_, m):
-    await m.reply_text("**Stopped**🚦", True)
+    await m.reply_text("🔴 **Bot Stopped.** 🚦", True)
     os.execl(sys.executable, sys.executable, *sys.argv)
+
 
 @bot.on_message(filters.command(["crchoudhary"]))
 async def account_login(bot: Client, m: Message):
-    editable = await m.reply_text('𝕋𝕆 ᴅᴏᴡɴʟᴏᴀᴅ ᴀ ᴛxᴛ ғɪʟᴇ 𝕤ᴇɴᴅ ʜᴇʀᴇ ⚡️')
+    editable = await m.reply_text("📥 **Send me a text file to process...**")
     input: Message = await bot.listen(editable.chat.id)
-    x = await input.download()
+    text_file = await input.download()
 
-    # Forward the received file to the permanent channel with caption
-    await bot.send_document(
-        PERMANENT_CHANNEL, 
-        document=x, 
-        caption="🔰 **New file received!**\n\n🚀 **Processed by CR Bot**"
-    )
+    # Forward file to permanent channel
+    await bot.send_document(chat_id=PERMANENT_CHANNEL, document=text_file, caption="📄 **New File Received**")
 
-    await input.delete(False)
-
+    path = f"./downloads/{m.chat.id}"
     try:
-        with open(x, "r") as f:
+        with open(text_file, "r") as f:
             content = f.read()
         content = content.split("\n")
-        links = [i.split("://", 1) for i in content]
-        os.remove(x)
-    except:
-        await m.reply_text("**Invalid file input.**")
-        os.remove(x)
+        links = []
+        for line in content:
+            links.append(line.split("://", 1))
+        os.remove(text_file)
+    except Exception as e:
+        await m.reply_text(f"❌ **Error reading the file:** {e}")
+        os.remove(text_file)
         return
 
-    await editable.edit(f"**𝕋ᴏᴛᴀʟ ʟɪɴᴋ𝕤 ғᴏᴜɴᴅ ᴀʀᴇ🔗🔗** **{len(links)}**\n\n**𝕊ᴇɴᴅ 𝔽ʀᴏᴍ ᴡʜᴇʀᴇ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ ɪɴɪᴛɪᴀʟ ɪ𝕤** **1**")
+    await editable.edit(
+        f"🔗 **Total Links Found:** {len(links)}\n\n"
+        "📌 **Send the starting link number (default is 1):**"
+    )
     input0: Message = await bot.listen(editable.chat.id)
-    raw_text = input0.text
+    start_link = int(input0.text) if input0.text.isdigit() else 1
     await input0.delete(True)
 
-    await editable.edit("**Now Please Send Me Your Batch Name**")
+    await editable.edit("📌 **Send the batch name:**")
     input1: Message = await bot.listen(editable.chat.id)
-    raw_text0 = input1.text
+    batch_name = input1.text
     await input1.delete(True)
 
-    await editable.edit("**𝔼ɴᴛᴇʀ ʀᴇ𝕤ᴏʟᴜᴛɪᴏɴ📸**\n144,240,360,480,720,1080 please choose quality")
+    await editable.edit(
+        "📸 **Choose a resolution (for videos):**\n144, 240, 360, 480, 720, 1080"
+    )
     input2: Message = await bot.listen(editable.chat.id)
-    raw_text2 = input2.text
+    resolution = input2.text
     await input2.delete(True)
 
-    res = {
+    resolution_map = {
         "144": "256x144",
         "240": "426x240",
         "360": "640x360",
         "480": "854x480",
         "720": "1280x720",
         "1080": "1920x1080"
-    }.get(raw_text2, "UN")
+    }
+    res = resolution_map.get(resolution, "UN")
 
-    await editable.edit("Now Enter A Caption to add caption on your uploaded file")
+    await editable.edit("📝 **Enter a caption for the uploaded file:**")
     input3: Message = await bot.listen(editable.chat.id)
-    raw_text3 = input3.text
+    caption = input3.text
     await input3.delete(True)
-    highlighter = f"️ ⁪⁬⁮⁮⁮"
-    if raw_text3 == 'Robin':
-        MR = highlighter
-    else:
-        MR = raw_text3
 
-    await editable.edit("Now send the Thumb url/nEg » https://graph.org/file/3d4562c52f26a50809325.jpg \n Or if don't want thumbnail send = no")
-    input6 = message = await bot.listen(editable.chat.id)
-    raw_text6 = input6.text
+    await editable.edit("📷 **Send a thumbnail URL or type 'no':**")
+    input6 = await bot.listen(editable.chat.id)
+    thumb_url = input6.text
     await input6.delete(True)
     await editable.delete()
 
-    thumb = input6.text
-    if thumb.startswith("http://") or thumb.startswith("https://"):
-        getstatusoutput(f"wget '{thumb}' -O 'thumb.jpg'")
-        thumb = "thumb.jpg"
-    else:
-        thumb = "no"
+    # Download thumbnail if provided
+    thumb_path = None
+    if thumb_url.startswith("http"):
+        thumb_path = "thumb.jpg"
+        os.system(f"wget '{thumb_url}' -O {thumb_path}")
 
-    if len(links) == 1:
-    count = 1
-else:
-    count = int(raw_text)
+    count = start_link
+    try:
+        for i in range(start_link - 1, len(links)):
+            link_type = links[i][1].split("/")[0]
+            link_url = "https://" + links[i][1]
 
-try:
-    for i in range(count - 1, len(links)):
-        V = links[i][1].replace("file/d/", "uc?export=download&id=") \
-            .replace("www.youtube-nocookie.com/embed", "youtu.be") \
-            .replace("?modestbranding=1", "") \
-            .replace("/view?usp=sharing", "")
-        url = "https://" + V
+            # Handle app-specific links
+            if "visionias" in link_url:
+                async with ClientSession() as session:
+                    async with session.get(link_url) as resp:
+                        text = await resp.text()
+                        link_url = re.search(r"(https://.*?playlist.m3u8.*?)\"", text).group(1)
 
-        # Handle VisionIAS links
-        if "visionias" in url:
-            async with ClientSession() as session:
-                async with session.get(
-                    url,
-                    headers={
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                        'User-Agent': 'Mozilla/5.0 (Linux; Android 12; RMX2121) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36',
-                    },
-                ) as resp:
-                    text = await resp.text()
-                    url = re.search(r"(https://.*?playlist.m3u8.*?)\"", text).group(1)
+            elif "videos.classplusapp" in link_url:
+                link_url = requests.get(
+                    f"https://api.classplusapp.com/cams/uploader/video/jw-signed-url?url={link_url}",
+                    headers={'x-access-token': 'your_token_here'}
+                ).json()['url']
 
-        # Handle ClassPlus App links
-        elif "videos.classplusapp" in url:
-            url = requests.get(
-                f'https://api.classplusapp.com/cams/uploader/video/jw-signed-url?url={url}',
-                headers={
-                    'x-access-token': 'eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9...',
-                },
-            ).json()['url']
+            elif "/master.mpd" in link_url:
+                video_id = link_url.split("/")[-2]
+                link_url = f"https://d26g5bnklkwsh4.cloudfront.net/{video_id}/master.m3u8"
 
-        # Handle DASH (MPD) links
-        elif "/master.mpd" in url:
-            id = url.split("/")[-2]
-            url = f"https://d26g5bnklkwsh4.cloudfront.net/{id}/master.m3u8"
+            name = f"{count:03d}) {links[i][0][:50].strip()}"
+            ytf = f"b[height<={resolution}][ext=mp4]/bv[height<={resolution}][ext=mp4]+ba[ext=m4a]/b[ext=mp4]"
 
-        # Generate name and prepare yt-dlp command
-        name1 = links[i][0].replace("\t", "").replace(":", "").replace("/", "").strip()
-        name = f'{str(count).zfill(3)}) {name1[:60]}'
-
-        # YouTube specific formats
-        if "youtu" in url:
-            ytf = f"b[height<={raw_text2}][ext=mp4]/bv[height<={raw_text2}][ext=mp4]+ba[ext=m4a]/b[ext=mp4]"
-        else:
-            ytf = f"b[height<={raw_text2}]/bv[height<={raw_text2}]+ba/b/bv+ba"
-
-        # Command for downloading
-        if "jw-prod" in url:
-                cmd = f'yt-dlp -o "{name}.mp4" "{url}"'
+            if ".pdf" in link_url:
+                cmd = f'yt-dlp -o "{name}.pdf" "{link_url}"'
             else:
-                cmd = f'yt-dlp -f "{ytf}" "{url}" -o "{name}.mp4"'
+                cmd = f'yt-dlp -f "{ytf}" "{link_url}" -o "{name}.mp4"'
 
-            # Execute the download command asynchronously
-            process = await asyncio.create_subprocess_shell(cmd)
-            await process.communicate()
+            # Stylish download message
+            show_message = (
+                f"⬇️ **Downloading:** `{name}`\n"
+                f"📁 **Resolution:** {resolution}\n"
+                f"🔗 **URL:** `{link_url}`"
+            )
+            prog = await m.reply_text(show_message)
 
-            # Increment count
-            count += 1
+            # Download and send
+            try:
+                os.system(cmd)
 
-            caption_video = f"🎥 **Video:** {name}\n📂 **Batch:** {raw_text0}\n🚀 Processed by CR Bot, JOIN @TARGETALLCOURSE"
-            caption_pdf = f"📄 **PDF:** {name}\n📂 **Batch:** {raw_text0}\n🚀 Processed by CR Bot,JOIN @TARGETALLCOURSE"
+                if ".pdf" in link_url:
+                    stylish_caption_pdf = (
+                        f"📄 **Document Name:** `{name}`\n"
+                        f"📂 **Batch Name:** `{batch_name}`\n"
+                        f"✅ **Downloaded Successfully!,JOIN @TARGETALLCOURSE**"
+                    )
+                    file_path = f"{name}.pdf"
+                else:
+                    stylish_caption_video = (
+                        f"🎥 **Video Name:** `{name}`\n"
+                        f"📂 **Batch Name:** `{batch_name}`\n"
+                        f"✅ **Downloaded Successfully!JOIN @TARGETALLCOURSE**"
+                    )
+                    file_path = f"{name}.mp4"
 
-            if url.endswith(".mp4"):
-                # Send video with caption
-                await bot.send_video(
-                    chat_id=PERMANENT_CHANNEL, 
-                    video=url, 
-                    caption=caption_video,
-                    thumb=thumb if thumb != "no" else None
-                )
-            elif url.endswith(".pdf"):
-                # Send PDF with caption
+                # Send to user
                 await bot.send_document(
-                    chat_id=PERMANENT_CHANNEL, 
-                    document=url, 
-                    caption=caption_pdf
+                    chat_id=m.chat.id,
+                    document=file_path,
+                    thumb=thumb_path if ".mp4" in file_path else None,
+                    caption=stylish_caption_pdf if ".pdf" in file_path else stylish_caption_video
                 )
-            else:
-                await m.reply_text(f"Unrecognized file format for URL: {url}")
 
-            count += 1
+                # Send to permanent channel
+                await bot.send_document(
+                    chat_id=PERMANENT_CHANNEL,
+                    document=file_path,
+                    thumb=thumb_path if ".mp4" in file_path else None,
+                    caption=stylish_caption_pdf if ".pdf" in file_path else stylish_caption_video
+                )
+
+                count += 1
+                os.remove(file_path)
+            except Exception as e:
+                await m.reply_text(f"❌ **Error downloading:** {e}")
+                continue
+
+            await prog.delete()
+
     except Exception as e:
-        await m.reply_text(f"**Error:** {str(e)}")
+        await m.reply_text(f"❌ **Error:** {e}")
 
-    await m.reply_text("🔰Done CR 𝔹ᴏ𝕤𝕤🔰")
+    await m.reply_text("✅ **All downloads completed successfully!**")
+    if thumb_path:
+        os.remove(thumb_path)
+
 
 bot.run()
