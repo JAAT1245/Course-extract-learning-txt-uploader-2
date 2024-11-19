@@ -21,46 +21,6 @@ bot = Client(
     bot_token=bot_token
 )
 
-def stylish_progress_bar(perc, sp, cur, tot, eta):
-    """Generates a stylish download progress message."""
-    progress_bar = "█" * (perc // 10) + "░" * (10 - perc // 10)
-    return f"""
-╭──⌯════🖤⚡ʟᴏᴀᴅɪɴɢ⬆️⬆️═════⌯──╮ 
-├⚡ {progress_bar}|﹝{perc}﹞ 
-├🚀 Speed » {sp} 
-├📟 Processed » {cur}
-├🧲 Size - ETA » {tot} - {eta} 
-├🤖𝔹ʏ » ℂℝ ℂℍ𝕆𝕌ℕ𝔻ℍ𝔸ℝ𝕐
-╰─═══ ✪ TERA BAAP 😎👀 ✪ ═══─╯
-"""
-
-def stylish_uploading_bar(perc, sp, cur, tot, eta):
-    """Generates a stylish uploading progress message."""
-    progress_bar = "█" * (perc // 10) + "░" * (10 - perc // 10)
-    return f"""
-╭──⌯════🆄︎ᴘʟᴏᴀᴅɪɴɢ⬆️⬆️═════⌯──╮ 
-├⚡ {progress_bar}|﹝{perc}﹞ 
-├🚀 Speed » {sp} 
-├📟 Processed » {cur}
-├🧲 Size - ETA » {tot} - {eta} 
-├🤖𝔹ʏ » ℂℝ ℂℍ𝕆𝕌ℕ𝔻ℍ𝔸ℝ𝕐
-╰─═══ ✪ TERA BAAP 😎👀 ✪ ═══─╯
-"""
-
-@bot.on_message(filters.command(["start"]))
-async def account_login(bot: Client, m: Message):
-    await m.reply_text(
-        f"👋 Hello [{m.from_user.first_name}](tg://user?id={m.from_user.id})!\n\n"
-        f"🚀 Welcome to the **Downloader Bot**.\nPress /crchoudhary to begin.",
-    )
-
-
-@bot.on_message(filters.command("stop"))
-async def restart_handler(_, m):
-    await m.reply_text("🔴 **Bot Stopped.**", True)
-    os.execl(sys.executable, sys.executable, *sys.argv)
-
-
 @bot.on_message(filters.command(["crchoudhary"]))
 async def account_login(bot: Client, m: Message):
     editable = await m.reply_text("📥 **Send me a text file to process...**")
@@ -161,7 +121,7 @@ async def account_login(bot: Client, m: Message):
                 await m.reply_text(stylish_message)
 
                 stylish_caption_video = (
-                    f"🎥 **Video Name:** `{name1}`\n"
+                    f"🎥 **Video Name:** `{name1}.mkv`\n"
                     f"📂 **Batch Name:** `{raw_text0}`\n"
                     f"📽️ **Resolution:** `{raw_text2}`\n"
                     f"✅ **Downloaded Successfully!**\n"
@@ -204,6 +164,8 @@ async def account_login(bot: Client, m: Message):
 
     except Exception as e:
         await m.reply_text(f"❌ **Error processing PDF:** {e}")
+            
+       
 
 # Running the bot
 bot.run()
