@@ -110,84 +110,86 @@ async def account_login(bot: Client, m: Message):
     count = start_link
     try:
         for i in range(start_link - 1, len(links)):
-            link_type = links[i][1].split("/")[0]
-            link_url = "https://" + links[i][1]
+    link_type = links[i][1].split("/")[0]
+    link_url = "https://" + links[i][1]
 
-            # Handle app-specific links
-            if "visionias" in link_url:
-                async with ClientSession() as session:
-                    async with session.get(link_url) as resp:
-                        text = await resp.text()
-                        link_url = re.search(r"(https://.*?playlist.m3u8.*?)\"", text).group(1)
+    # Handle app-specific links
+    if "visionias" in link_url:
+        async with ClientSession() as session:
+            async with session.get(link_url) as resp:
+                text = await resp.text()
+                link_url = re.search(r"(https://.*?playlist.m3u8.*?)\"", text).group(1)
 
-            elif "videos.classplusapp" in link_url:
-                link_url = requests.get(
-                    f"https://api.classplusapp.com/cams/uploader/video/jw-signed-url?url={link_url}",
-                    headers={'x-access-token': 'your_token_here'}
-                ).json()['url']
+    elif "videos.classplusapp" in link_url:
+        link_url = requests.get(
+            f"https://api.classplusapp.com/cams/uploader/video/jw-signed-url?url={link_url}",
+            headers={'x-access-token': 'your_token_here'}
+        ).json()['url']
 
-            elif "/master.mpd" in link_url:
-                video_id = link_url.split("/")[-2]
-                link_url = f"https://d26g5bnklkwsh4.cloudfront.net/{video_id}/master.m3u8"
+    elif "/master.mpd" in link_url:
+        video_id = link_url.split("/")[-2]
+        link_url = f"https://d26g5bnklkwsh4.cloudfront.net/{video_id}/master.m3u8"
 
-            name = f"{count:03d}) {links[i][0][:50].strip()}"
-            ytf = f"b[height<={resolution}][ext=mp4]/bv[height<={resolution}][ext=mp4]+ba[ext=m4a]/b[ext=mp4]"
+    name = f"{count:03d}) {links[i][0][:50].strip()}"
+    ytf = f"b[height<={resolution}][ext=mp4]/bv[height<={resolution}][ext=mp4]+ba[ext=m4a]/b[ext=mp4]"
 
-            if ".pdf" in link_url:
-                cmd = f'yt-dlp -o "{name}.pdf" "{link_url}"'
-            else:
-                cmd = f'yt-dlp -f "{ytf}" "{link_url}" -o "{name}.mp4"'
+    # Determine file type
+    if ".pdf" in link_url:
+        file_extension = ".pdf"
+        cmd = f'yt-dlp -o "{name}{file_extension}" "{link_url}"'
+    else:
+        file_extension = ".mp4"
+        cmd = f'yt-dlp -f "{ytf}" "{link_url}" -o "{name}{file_extension}"'
 
-            # Stylish download message
-            show_message = (
-                f"⬇️ **Downloading:** `{name}`\n"
-                f"📁 **Resolution:** {resolution}\n"
-                f"🔗 **URL:** `{link_url}`"
+    # Stylish download message
+    show_message = (
+        f"⬇️ **Downloading:** `{name}{file_extension}`\n"
+        f"📁 **Resolution:** {resolution}\n"
+        f"🔗 **URL:** `{link_url}` land lega kya mera pura links pdh kr 😂😂"
+    )
+    prog = await m.reply_text(show_message)
+
+    # Download and send
+    try:
+        os.system(cmd)
+
+        file_path = f"{name}{file_extension}"
+        if file_extension == ".pdf":
+            stylish_caption_pdf = (
+                f"📄 **Document Name:** `{name}`\n"
+                f"📂 **Batch Name:** `{batch_name}`\n"
+                f"✅ **Downloaded Successfully! JOIN @TARGETALLCOURSE**"
             )
-            prog = await m.reply_text(show_message)
+        else:
+            stylish_caption_video = (
+                f"🎥 **Video Name:** `{name}`\n"
+                f"📂 **Batch Name:** `{batch_name}`\n"
+                f"✅ **Downloaded Successfully! JOIN @TARGETALLCOURSE**"
+            )
 
-            # Download and send
-            try:
-                os.system(cmd)
+        # Send to user
+        await bot.send_document(
+            chat_id=m.chat.id,
+            document=file_path,
+            thumb=thumb_path if ".mp4" in file_path else None,
+            caption=stylish_caption_pdf if file_extension == ".pdf" else stylish_caption_video
+        )
 
-                if ".pdf" in link_url:
-                    stylish_caption_pdf = (
-                        f"📄 **Document Name:** `{name}`\n"
-                        f"📂 **Batch Name:** `{batch_name}`\n"
-                        f"✅ **Downloaded Successfully!,JOIN @TARGETALLCOURSE**"
-                    )
-                    file_path = f"{name}.pdf"
-                else:
-                    stylish_caption_video = (
-                        f"🎥 **Video Name:** `{name}`\n"
-                        f"📂 **Batch Name:** `{batch_name}`\n"
-                        f"✅ **Downloaded Successfully!JOIN @TARGETALLCOURSE**"
-                    )
-                    file_path = f"{name}.mp4"
+        # Send to permanent channel
+        await bot.send_document(
+            chat_id=PERMANENT_CHANNEL,
+            document=file_path,
+            thumb=thumb_path if ".mp4" in file_path else None,
+            caption=stylish_caption_pdf if file_extension == ".pdf" else stylish_caption_video
+        )
 
-                # Send to user
-                await bot.send_document(
-                    chat_id=m.chat.id,
-                    document=file_path,
-                    thumb=thumb_path if ".mp4" in file_path else None,
-                    caption=stylish_caption_pdf if ".pdf" in file_path else stylish_caption_video
-                )
+        count += 1
+        os.remove(file_path)
+    except Exception as e:
+        await m.reply_text(f"❌ **Error downloading:** {e}")
+        continue
 
-                # Send to permanent channel
-                await bot.send_document(
-                    chat_id=PERMANENT_CHANNEL,
-                    document=file_path,
-                    thumb=thumb_path if ".mp4" in file_path else None,
-                    caption=stylish_caption_pdf if ".pdf" in file_path else stylish_caption_video
-                )
-
-                count += 1
-                os.remove(file_path)
-            except Exception as e:
-                await m.reply_text(f"❌ **Error downloading:** {e}")
-                continue
-
-            await prog.delete()
+    await prog.delete()
 
     except Exception as e:
         await m.reply_text(f"❌ **Error:** {e}")
