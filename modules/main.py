@@ -1,7 +1,6 @@
 import os
 import re
 import sys
-import time
 import requests
 from aiohttp import ClientSession
 from pyrogram import Client, filters
@@ -27,13 +26,13 @@ bot = Client(
 async def account_login(bot: Client, m: Message):
     await m.reply_text(
         f"👋 Hello [{m.from_user.first_name}](tg://user?id={m.from_user.id})!\n\n"
-        f"Welcome to the downloader bot.\nPress /crchoudhary to begin.",
+        f"🚀 Welcome to the **Downloader Bot**.\nPress /crchoudhary to begin.",
     )
 
 
 @bot.on_message(filters.command("stop"))
 async def restart_handler(_, m):
-    await m.reply_text("🔴 **Bot Stopped.** 🚦", True)
+    await m.reply_text("🔴 **Bot Stopped.**", True)
     os.execl(sys.executable, sys.executable, *sys.argv)
 
 
@@ -68,7 +67,7 @@ async def account_login(bot: Client, m: Message):
     start_link = int(input0.text) if input0.text.isdigit() else 1
     await input0.delete(True)
 
-    await editable.edit("📌 **Send the batch name:**")
+    await editable.edit("📝 **Send the batch name:**")
     input1: Message = await bot.listen(editable.chat.id)
     batch_name = input1.text
     await input1.delete(True)
@@ -90,12 +89,12 @@ async def account_login(bot: Client, m: Message):
     }
     res = resolution_map.get(resolution, "UN")
 
-    await editable.edit("📝 **Enter a caption for the uploaded file:**")
+    await editable.edit("✍️ **Enter a caption for the uploaded file:**")
     input3: Message = await bot.listen(editable.chat.id)
     caption = input3.text
     await input3.delete(True)
 
-    await editable.edit("📷 **Send a thumbnail URL or type 'no':**")
+    await editable.edit("🌄 **Send a thumbnail URL or type 'no':**")
     input6 = await bot.listen(editable.chat.id)
     thumb_url = input6.text
     await input6.delete(True)
@@ -131,7 +130,7 @@ async def account_login(bot: Client, m: Message):
                 link_url = f"https://d26g5bnklkwsh4.cloudfront.net/{video_id}/master.m3u8"
 
             name = f"{count:03d}) {links[i][0][:50].strip()}"
-            ytf = f"b[height<={resolution}][ext=mp4]/bv[height<={resolution}][ext=mp4]+ba[ext=m4a]/b[ext=mp4]"
+            ytf = f"bv*[height<={resolution}][ext=mp4]+ba[ext=m4a]/b[height<={resolution}][ext=mp4]/b[ext=mp4]"
 
             # Determine file type
             if ".pdf" in link_url:
@@ -145,7 +144,7 @@ async def account_login(bot: Client, m: Message):
             show_message = (
                 f"⬇️ **Downloading:** `{name}{file_extension}`\n"
                 f"📁 **Resolution:** {resolution}\n"
-                f"🔗 **URL:** `{link_url}`pura link pdh kr land lega kya mera 😂 or kuch kam kr le me hu yha"
+                f"🔗 **URL:** `{link_url}`.       **👀📱 लन्ड लेगा मेरा**"
             )
             prog = await m.reply_text(show_message)
 
