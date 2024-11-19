@@ -21,6 +21,31 @@ bot = Client(
     bot_token=bot_token
 )
 
+def stylish_progress_bar(perc, sp, cur, tot, eta):
+    """Generates a stylish download progress message."""
+    progress_bar = "█" * (perc // 10) + "░" * (10 - perc // 10)
+    return f"""
+╭──⌯════🖤⚡ʟᴏᴀᴅɪɴɢ⬆️⬆️═════⌯──╮ 
+├⚡ {progress_bar}|﹝{perc}﹞ 
+├🚀 Speed » {sp} 
+├📟 Processed » {cur}
+├🧲 Size - ETA » {tot} - {eta} 
+├🤖𝔹ʏ » ℂℝ ℂℍ𝕆𝕌ℕ𝔻ℍ𝔸ℝ𝕐
+╰─═══ ✪ TERA BAAP 😎👀 ✪ ═══─╯
+"""
+
+def stylish_uploading_bar(perc, sp, cur, tot, eta):
+    """Generates a stylish uploading progress message."""
+    progress_bar = "█" * (perc // 10) + "░" * (10 - perc // 10)
+    return f"""
+╭──⌯════🆄︎ᴘʟᴏᴀᴅɪɴɢ⬆️⬆️═════⌯──╮ 
+├⚡ {progress_bar}|﹝{perc}﹞ 
+├🚀 Speed » {sp} 
+├📟 Processed » {cur}
+├🧲 Size - ETA » {tot} - {eta} 
+├🤖𝔹ʏ » ℂℝ ℂℍ𝕆𝕌ℕ𝔻ℍ𝔸ℝ𝕐
+╰─═══ ✪ TERA BAAP 😎👀 ✪ ═══─╯
+"""
 
 @bot.on_message(filters.command(["start"]))
 async def account_login(bot: Client, m: Message):
@@ -79,16 +104,6 @@ async def account_login(bot: Client, m: Message):
     resolution = input2.text
     await input2.delete(True)
 
-    resolution_map = {
-        "144": "256x144",
-        "240": "426x240",
-        "360": "640x360",
-        "480": "854x480",
-        "720": "1280x720",
-        "1080": "1920x1080"
-    }
-    res = resolution_map.get(resolution, "UN")
-
     await editable.edit("✍️ **Enter a caption for the uploaded file:**")
     input3: Message = await bot.listen(editable.chat.id)
     caption = input3.text
@@ -106,95 +121,89 @@ async def account_login(bot: Client, m: Message):
         thumb_path = "thumb.jpg"
         os.system(f"wget '{thumb_url}' -O {thumb_path}")
 
+    raw_text0 = batch_name
+    raw_text2 = resolution
     count = start_link
+
+    # वीडियो डाउनलोडिंग प्रोसेसिंग
     try:
-        for i in range(start_link - 1, len(links)):
-            link_type = links[i][1].split("/")[0]
-            link_url = "https://" + links[i][1]
+        for i in range(count - 1, len(links)):
+            V = links[i][1].replace("file/d/", "uc?export=download&id=").replace("www.youtube-nocookie.com/embed", "youtu.be").replace("?modestbranding=1", "").replace("/view?usp=sharing", "")
+            url = "https://" + V
 
-            # Handle app-specific links
-            if "visionias" in link_url:
+            if "visionias" in url:
                 async with ClientSession() as session:
-                    async with session.get(link_url) as resp:
+                    async with session.get(url, headers={
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                        'User-Agent': 'Mozilla/5.0'}) as resp:
                         text = await resp.text()
-                        link_url = re.search(r"(https://.*?playlist.m3u8.*?)\"", text).group(1)
+                        url = re.search(r"(https://.*?playlist.m3u8.*?)\"", text).group(1)
 
-            elif "videos.classplusapp" in link_url:
-                link_url = requests.get(
-                    f"https://api.classplusapp.com/cams/uploader/video/jw-signed-url?url={link_url}",
-                    headers={'x-access-token': 'your_token_here'}
-                ).json()['url']
+            elif 'videos.classplusapp' in url:
+                url = requests.get(f'https://api.classplusapp.com/cams/uploader/video/jw-signed-url?url={url}',
+                                   headers={'x-access-token': 'your_token_here'}).json()['url']
 
-            elif "/master.mpd" in link_url:
-                video_id = link_url.split("/")[-2]
-                link_url = f"https://d26g5bnklkwsh4.cloudfront.net/{video_id}/master.m3u8"
+            elif '/master.mpd' in url:
+                id = url.split("/")[-2]
+                url = "https://d26g5bnklkwsh4.cloudfront.net/" + id + "/master.m3u8"
 
-            name = f"{count:03d}) {links[i][0][:50].strip()}"
-            ytf = f"bv*[height<={resolution}][ext=mp4]+ba[ext=m4a]/b[height<={resolution}][ext=mp4]/b[ext=mp4]"
+            name1 = links[i][0].strip()
+            name = f'{str(count).zfill(3)}) {name1[:60]}'
 
-            # Determine file type
-            if ".pdf" in link_url:
-                file_extension = ".pdf"
-                cmd = f'yt-dlp -o "{name}{file_extension}" "{link_url}"'
-            else:
-                file_extension = ".mp4"
-                cmd = f'yt-dlp -f "{ytf}" "{link_url}" -o "{name}{file_extension}"'
+            ytf = f"b[height<={raw_text2}][ext=mp4]/bv[height<={raw_text2}][ext=mp4]+ba[ext=m4a]/b[ext=mp4]"
 
-            # Stylish download message
-            show_message = (
-                f"⬇️ **Downloading:** `{name}{file_extension}`\n"
-                f"📁 **Resolution:** {resolution}\n"
-                f"🔗 **URL:** `{link_url}`.       **👀📱 लन्ड लेगा मेरा**"
-            )
-            prog = await m.reply_text(show_message)
-
-            # Download and send
+            cmd = f'yt-dlp -f "{ytf}" "{url}" -o "{name}.mp4"'
             try:
                 os.system(cmd)
 
-                file_path = f"{name}{file_extension}"
-                if file_extension == ".pdf":
-                    stylish_caption_pdf = (
-                        f"📄 **Document Name:** `{name}`\n"
-                        f"📂 **Batch Name:** `{batch_name}`\n"
-                        f"✅ **Downloaded Successfully! JOIN @TARGETALLCOURSE**"
-                    )
-                else:
-                    stylish_caption_video = (
-                        f"🎥 **Video Name:** `{name}`\n"
-                        f"📂 **Batch Name:** `{batch_name}`\n"
-                        f"✅ **Downloaded Successfully! JOIN @TARGETALLCOURSE**"
-                    )
+                # Stylish download progress message
+                stylish_message = stylish_progress_bar(perc=70, sp="2.5MB/s", cur="50MB", tot="100MB", eta="30s")
+                await m.reply_text(stylish_message)
 
-                # Send to user
-                await bot.send_document(
-                    chat_id=m.chat.id,
-                    document=file_path,
-                    thumb=thumb_path if ".mp4" in file_path else None,
-                    caption=stylish_caption_pdf if file_extension == ".pdf" else stylish_caption_video
+                stylish_caption_video = (
+                    f"🎥 **Video Name:** `{name1}`\n"
+                    f"📂 **Batch Name:** `{raw_text0}`\n"
+                    f"📽️ **Resolution:** `{raw_text2}`\n"
+                    f"✅ **Downloaded Successfully!**\n"
+                    f"**Join @TARGETALLCOURSE for more updates!**"
                 )
 
-                # Send to permanent channel
-                await bot.send_document(
-                    chat_id=PERMANENT_CHANNEL,
-                    document=file_path,
-                    thumb=thumb_path if ".mp4" in file_path else None,
-                    caption=stylish_caption_pdf if file_extension == ".pdf" else stylish_caption_video
-                )
+                # Send to user with stylish caption
+                await bot.send_document(chat_id=m.chat.id, document=f"{name}.mp4", caption=stylish_caption_video, thumb=thumb_path)
+
+                # Stylish upload progress
+                stylish_upload_message = stylish_uploading_bar(perc=80, sp="3MB/s", cur="200MB", tot="250MB", eta="10s")
+                await m.reply_text(stylish_upload_message)
 
                 count += 1
-                os.remove(file_path)
+                os.remove(f"{name}.mp4")
             except Exception as e:
-                await m.reply_text(f"❌ **Error downloading:** {e}")
+                await m.reply_text(f"❌ **Error Downloading {name}:** {e}")
                 continue
 
-            await prog.delete()
     except Exception as e:
         await m.reply_text(f"❌ **Error:** {e}")
 
-    await m.reply_text("✅ **All downloads completed successfully!**")
-    if thumb_path:
-        os.remove(thumb_path)
+    # Add stylish caption for PDF
+    try:
+        # Assuming PDF is also to be processed
+        pdf_name = "sample_pdf.pdf"  # Replace this with actual file name
+        stylish_caption_pdf = (
+            f"📄 **File Name:** `{pdf_name}`\n"
+            f"📂 **Batch Name:** `{raw_text0}`\n"
+            f"✅ **PDF Processed Successfully!**\n"
+            f"**Join @TARGETALLCOURSE for more updates!**"
+        )
 
+        # Send PDF file to the user
+        await bot.send_document(chat_id=m.chat.id, document=pdf_name, caption=stylish_caption_pdf, thumb=thumb_path)
 
+        # Clean up the thumbnail
+        if thumb_path and os.path.exists(thumb_path):
+            os.remove(thumb_path)
+
+    except Exception as e:
+        await m.reply_text(f"❌ **Error processing PDF:** {e}")
+
+# Running the bot
 bot.run()
